@@ -9,7 +9,7 @@
 [1. Основные цели и задачи проекта](https://github.com/HeronFL/Skill-Factory-Projects/blob/master/module_3/README.md#Основные-цели-и-задачи-проекта)  
 [2.  Краткая информация о данных](https://github.com/HeronFL/Skill-Factory-Projects/blob/master/module_3/README.md#Краткая-информация-о-данных)  
 [3. Этапы работы над проектом](https://github.com/HeronFL/Skill-Factory-Projects/blob/master/module_3/README.md#Этапы-работы-над-проектом)  
-[4. Результат](https://github.com/HeronFL/Skill-Factory-Projects/blob/master/module_2/README.md#Результат)  
+[4. Результат](https://github.com/HeronFL/Skill-Factory-Projects/blob/master/module_3/README.md#Результат)  
 
 ### Основные цели и задачи проекта  
 Предсказать рейтинг ресторана по данным сайта TripAdvisor на основе имеющихся в датасете данных.  

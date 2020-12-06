@@ -1,0 +1,519 @@
+/*
+                            ПРОЕКТ 4. АВИАРЕЙСЫ БЕЗ ПОТЕРЬ
+
+ -------------------------------------------------------------------------------------------------------------------------------------- 
+Задание 4.1
+База данных содержит список аэропортов практически всех крупных городов России. В большинстве городов есть только один аэропорт. Исключение составляет:
+Ответ
+Код аэропорта Название аэропорта                 Город            
+DME           Domodedovo International Airport   Moscow           
+SVO           Sheremetyevo International Airport Moscow 
+VKO           Vnukovo International Airport      Moscow
+ULV           Ulyanovsk Baratayevka Airport      Ulyanovsk
+ULY           Ulyanovsk East Airport             Ulyanovsk */
+
+SELECT a.airport_code AS code,
+       a.airport_name,
+       a.city,
+       a.latitude,
+       a.longitude
+FROM dst_project.airports AS a
+WHERE a.city IN
+    (SELECT b.city
+     FROM dst_project.airports AS b
+     GROUP BY b.city
+     HAVING COUNT(*) > 1)
+ORDER BY a.city,
+         a.airport_code;
+
+
+
+/* --------------------------------------------------------------------------------------------------------------------------------------- 
+
+Задание 4.2
+
+Вопрос 1. Таблица рейсов FLIGHTS содержит всю информацию о прошлых, текущих и запланированных рейсах. Сколько всего статусов для рейсов определено в таблице?
+Ответ  6
+Статус рейса (status) может принимать одно из следующих значений:
+Scheduled Рейс доступен для бронирования. Это происходит за месяц до плановой даты вылета; до этого запись о рейсе не существует в базе данных.
+On Time   Рейс доступен для регистрации (за сутки до плановой даты вылета) и не задержан.
+Delayed   Рейс доступен для регистрации (за сутки до плановой даты вылета), но задержан.
+Departed  Самолет уже вылетел и находится в воздухе.
+Arrived   Самолет прибыл в пункт назначения.
+Cancelled Рейс отменён. */
+
+SELECT COUNT(DISTINCT a.status)
+FROM dst_project.FLIGHTS AS a;
+
+
+/* 
+Вопрос 2. Какое количество самолетов находятся в воздухе на момент среза в базе (статус рейса «самолёт уже вылетел и находится в воздухе»  Departed)
+Ответ  58   */
+SELECT COUNT(a.aircraft_code)
+FROM dst_project.FLIGHTS AS a where a.status='Departed';
+
+/*
+Вопрос 3. Места определяют схему салона каждой модели. Сколько мест имеет самолет 773 модели  (Boeing 777-300)?
+Ответ  402   */
+
+SELECT COUNT(DISTINCT a.seat_no)
+FROM dst_project.SEATS AS a
+WHERE a.aircraft_code='773';
+
+/*
+Вопрос 4. Сколько состоявшихся (фактических) рейсов было совершено между 1 апреля 2017 года и 1 сентября 2017 года?
+Здесь и далее состоявшийся рейс означает, что он не отменён, и самолёт прибыл в пункт назначения.
+Ответ  74227   */
+
+SELECT COUNT(a.aircraft_code) AS arrived
+FROM dst_project.FLIGHTS AS a
+WHERE a.status='Arrived'
+  AND (a.actual_arrival >'2017-04-01 00:00:00'
+       AND actual_arrival <'2017-09-01 00:00:00');
+
+/* --------------------------------------------------------------------------------------------------------------------------------------- 
+Задание 4.3
+Вопрос 1. Сколько всего рейсов было отменено по данным базы?
+Ответ  437   */
+
+SELECT COUNT(a.aircraft_code) AS cancelled
+FROM dst_project.FLIGHTS AS a
+WHERE a.status='Cancelled';
+
+/*
+Вопрос 2. Сколько самолетов моделей типа Boeing, Sukhoi Superjet, Airbus находится в базе авиаперевозок?
+Ответ  
+3 Airbus
+3 Boeing
+1 Sukhoi   */
+
+SELECT COUNT(a.aircraft_code) AS aircraft_count,
+       substring(a.model, 1, 6) AS model
+FROM dst_project.AIRCRAFTS AS a
+WHERE substring(a.model, 1, 6)='Boeing'
+  OR substring(a.model, 1, 6)='Airbus'
+  OR substring(a.model, 1, 6)='Sukhoi'
+GROUP BY substring(a.model, 1, 6);
+
+/*
+Вопрос 3. В какой части (частях) света находится больше аэропортов?
+Ответ  
+Europe, 52 
+Asia 52 */
+
+SELECT COUNT(a.airport_code) AS airport_count,
+       substring(a.timezone, 1, 4) AS zone_path
+FROM dst_project.AIRPORTS AS a
+GROUP BY substring(a.timezone, 1, 4);
+
+/*
+Вопрос 4. У какого рейса была самая большая задержка прибытия за все время сбора данных? Введите id рейса (flight_id).
+Ответ 
+157571 2016-09-01 13:45:00 2016-09-01 18:52:00 0 years 0 mons 0 days 5 hours 7 mins 0.00 secs
+*/
+SELECT f.flight_iD,
+       f. scheduled_arrival,
+       f. actual_arrival,
+       age(f. actual_arrival, f. scheduled_arrival) AS zn
+FROM dst_project.FLIGHTS AS f
+WHERE f.actual_arrival IS NOT NULL
+ORDER BY 4 DESC
+LIMIT 1;
+
+/* --------------------------------------------------------------------------------------------------------------------------------------- 
+Задание 4.4
+Вопрос 1. Когда был запланирован самый первый вылет, сохраненный в базе данных?
+Ответ 
+2016-08-14 23:45:00
+*/
+SELECT f.scheduled_departure
+FROM dst_project.FLIGHTS AS f
+ORDER BY 1
+LIMIT 1;
+
+/*
+Вопрос 2. Сколько минут составляет запланированное время полета в самом длительном рейсе?
+Ответ
+8090 2017-03-05 01:55:00 2017-03-04 17:05:00  530
+*/
+
+SELECT f.flight_id,
+       f.scheduled_departure,
+       f.scheduled_arrival,
+       (EXTRACT(HOUR FROM (f.scheduled_arrival-f.schedu led_departure))*60 + EXTRACT(MINUTE FROM (f.scheduled_arrival-f.scheduled_departure))) AS zn
+FROM dst_project.FLIGHTS AS f
+WHERE f.scheduled_arrival IS NOT NULL
+ORDER BY 4 DESC
+LIMIT 1;
+
+/*
+Вопрос 3. Между какими аэропортами пролегает самый длительный по времени запланированный рейс?
+Ответ
+8090 PG0168 DME UUS 0 years 0 mons 0 days 8 hours 50 mins 0.00 secs
+*/
+
+SELECT f.flight_iD,
+       f.flight_no,
+       f.departure_airport,
+       f.arrival_airport,
+       age(f.scheduled_arrival, f.scheduled_departure) AS zn
+FROM dst_project.FLIGHTS AS f
+WHERE f.scheduled_arrival IS NOT NULL
+ORDER BY 5 DESC
+LIMIT 1;
+
+/*
+Вопрос 4. Сколько составляет средняя дальность полета среди всех самолетов в минутах? Секунды округляются в меньшую сторону (отбрасываются до минут).
+Ответ
+128
+*/
+
+SELECT avg(EXTRACT(HOUR FROM (f.scheduled_arrival-f.scheduled_departure))*60 + EXTRACT(MINUTE FROM (f.scheduled_arrival-f.scheduled_departure)))::int  AS zn
+FROM dst_project.FLIGHTS AS f;
+
+SELECT AVG(EXTRACT(HOUR FROM (f.scheduled_arrival-f.scheduled_departure))*60 + EXTRACT(MINUTE FROM (f.scheduled_arrival-f.scheduled_departure)))::int AS zn
+FROM dst_project.FLIGHTS AS f;
+
+/* --------------------------------------------------------------------------------------------------------------------------------------- 
+Задание 4.5
+Вопрос 1. Мест какого класса у SU9 больше всего?
+Ответ
+SU9 Business(12), Economy(85)
+*/
+
+SELECT s2.aircraft_code,
+       string_agg (s2.fare_conditions || '(' || s2.num::text || ')', ', ') AS fare_conditions
+FROM
+  (SELECT s.aircraft_code,
+          s.fare_conditions,
+          COUNT(*) AS num
+   FROM dst_project.seats s
+   GROUP BY s.aircraft_code,
+            s.fare_conditions
+   ORDER BY s.aircraft_code,
+            s.fare_conditions) s2
+GROUP BY s2.aircraft_code
+ORDER BY s2.aircraft_code ASC;
+
+/*
+Вопрос 2. Какую самую минимальную стоимость составило бронирование за всю историю?
+Ответ
+3400
+*/
+
+SELECT *
+FROM dst_project.bookings
+ORDER BY total_amount ASC,
+         book_date DESC
+LIMIT 10;
+
+/*
+Вопрос 3. Какой номер места был у пассажира с id = 4313 788533
+Ответ
+4313 788533  2A
+*/
+
+SELECT t.passenger_id,
+       b.seat_no
+FROM dst_project.TICKETS t
+JOIN dst_project.BOARDING_PASSES b ON t.ticket_no = b.ticket_no
+WHERE t.passenger_id = '4313 788533'
+
+/* --------------------------------------------------------------------------------------------------------------------------------------- 
+Задание 5.1
+Вопрос 1. Анапа — курортный город на юге России. Сколько рейсов прибыло в Анапу за 2017 год?
+Ответ
+AAQ  486
+*/
+
+SELECT a.arrival_airport,
+       COUNT(a.flight_id) AS count_flight
+FROM dst_project.FLIGHTS AS a
+WHERE a.arrival_airport='AAQ'
+  AND EXTRACT(YEAR
+              FROM a.actual_arrival) = 2017
+GROUP BY a.arrival_airport;
+
+/*
+Вопрос 2. Сколько рейсов из Анапы вылетело зимой 2017 года?
+Ответ AAQ 127
+*/
+
+SELECT a.departure_airport,
+       COUNT(a.flight_iD) AS count_flight
+FROM dst_project.FLIGHTS AS a
+WHERE a.departure_airport='AAQ'
+  AND (EXTRACT(MONTH  FROM a.actual_departure) = 12
+       OR EXTRACT(MONTH FROM a.actual_departure) = 1
+       OR EXTRACT(MONTH FROM a.actual_departure) = 2)
+  AND EXTRACT(YEAR  FROM a.actual_departure) = 2017
+  AND a.status <> 'Cancelled'
+GROUP BY a.departure_airport;
+
+
+/*
+Вопрос 3. Посчитайте количество отмененных рейсов из Анапы за все время.
+Ответ AAQ  1
+*/
+SELECT a.departure_airport,
+       COUNT(a.flight_id) AS count_flight
+FROM dst_project.FLIGHTS AS a
+WHERE a.departure_airport='AAQ'
+  AND a.status = 'Cancelled'
+GROUP BY a.departure_airport;
+
+
+/*
+Вопрос 4. Сколько рейсов из Анапы не летают в Москву?
+Ответ AAQ  453
+*/
+
+
+SELECT COUNT(f.flight_id)
+FROM dst_project.FLIGHTS AS f
+JOIN dst_project.AIRPORTS AS a ON f.departure_airport = a.airport_code
+JOIN dst_project.AIRPORTS AS ai ON f.arrival_airport = ai.airport_code
+WHERE a.city = 'Anapa'
+  AND ai.city != 'Moscow';
+
+/*
+Вопрос 5. Какая модель самолета летящего на рейсах из Анапы имеет больше всего мест?
+Ответ Boeing 737-300
+*/
+
+SELECT p.model
+FROM dst_project.FLIGHTS f
+JOIN dst_project.AIRPORTS AS a ON f.departure_airport = a.airport_code
+JOIN dst_project.AIRCRAFTS AS p ON f.aircraft_code = p.aircraft_code
+JOIN dst_project.SEATS AS s ON f.aircraft_code = s.aircraft_code
+WHERE a.city = 'Anapa'
+GROUP BY 1
+ORDER BY COUNT(s.aircraft_code) DESC
+LIMIT 1;
+
+
+/*
+ЗАДАЧА
+Вы узнаёте, что компания переживает не лучшие времена каждую зиму: не все рейсы из Анапы окупаются в «низкий сезон». При этом есть направления, 
+которые потенциально могут быть прибыльными, но у компании не хватает самолетов для их запуска. И вашей первой задачей в новой должности станет 
+помощь в поиске самых малоприбыльных рейсов.
+Напомним, что вам предстоит выяснить, от каких самых малоприбыльных рейсов из Анапы мы можем отказаться в зимнее время. 
+Вы не знаете, по каким критериям ваше руководство будет отбирать рейсы, поэтому решаете собрать как можно больше информации, содержащейся в вашей базе, в один датасет. 
+Исходя из того, что прибыльность рейса — это разница между доходом от продаж билетов и расходом на полет, соберите такой датасет, который позволит оценить эти цифры. 
+Самая простая модель оценки прибыльности: стоимость билетов - стоимость топлива на рейс (для оценки последнего вам необходим километраж рейса или длительность полета), 
+но вы можете предложить другую модель.
+Ваш датасет должен обязательно включать id рейса и города вылета (Анапа) и прилета. Он также  может включать такие данные, как модель самолёта и его характеристики, 
+суммарную стоимость всех билетов на рейсе, затраченное время в полёте и прочее — на ваше усмотрение.
+ПРОБЛЕМА
+Региональное руководство не принимает решений об отмене рейсов, а только передаёт информацию о невыгодных перелетах в центральный филиал. 
+Однако данных в компании накопилось столько, что никто не может вытащить из базы нужную информацию. Именно вам предстоит разобраться с базой и достать из неё нужные данные. 
+А выводы затем предстоит представить перед высшим руководством. */
+
+
+/*
+Посмотрим среднюю стоимость билетов на рейсах из Анапы. 
+
+PG0252   Business 36,600
+PG0252   Economy 12,260.96
+PG0480   Business 18,900
+PG0480   Economy 6,335.09 */
+
+SELECT b.flight_no,
+       a.fare_conditions,
+       AVG(a.amount) AS avg_amount
+FROM dst_project.TICKET_FLIGHTS AS a,
+     dst_project.FLIGHTS AS b
+WHERE a.flight_id=b.flight_id
+  AND b.departure_airport = 'AAQ'
+  AND (b.scheduled_departure>'2016-10-25'
+       AND b.scheduled_departure<'2017-03-27')
+GROUP BY b.flight_no,
+         a.fare_conditions;
+
+
+/*Цену 1 билета рейсов PG0194 “Анапа Новокузнецк” не удалось найти, так как в таблице TICKET_FLIGHTS нет информации по билетам этого рейса. */
+
+/*Запрос с целью узнать интерес пассажиров к другим направлениям с помощью выборки по бронированию билетов вылетающими из Анапы ничего нового не дал (Москва и Белгород). */
+
+SELECT c.book_ref,
+       b.arrival_airport,
+       count(c.ticket_no) AS count_ticket
+FROM dst_project.TICKET_FLIGHTS AS a,
+     dst_project.FLIGHTS AS b,
+     dst_project.TICKETS AS c
+WHERE a.flight_id=b.flight_id
+  AND a.ticket_no=c.ticket_no
+  AND b.departure_airport = 'AAQ'
+  AND (b.scheduled_departure>='2016-10-25'
+       AND b.scheduled_departure<'2017-03-27')
+GROUP BY c.book_ref,
+         b.arrival_airport;
+
+/* 0000B0   SVO  3
+   000146   SVO  1
+   0006C0   SVO  1
+   000872   SVO  1
+   000A0C   SVO  2
+   0011FF   EGO  2
+   001434   EGO  2
+   0019A3  SVO   2 */
+
+
+
+/* Посмотрим заполняемость рейсов по месяцам и дням */
+
+SELECT a.flight_no,
+       EXTRACT(MONTH FROM (a.scheduled_departure))::int AS nmonth,
+       EXTRACT(DAY FROM (a.scheduled_departure))::int AS nday,
+       count(b.ticket_no) AS count_ticket,
+       sum(b.amount) AS sum_amount
+FROM dst_project.TICKET_FLIGHTS AS b,
+     dst_project.FLIGHTS AS a
+WHERE a.flight_id=b.flight_id
+  AND a.departure_airport = 'AAQ'
+  AND (a.scheduled_departure>='2016-10-25'
+       AND a.scheduled_departure<'2017-03-27')
+GROUP BY a.flight_no,
+         EXTRACT(MONTH FROM (a.scheduled_departure)),
+         EXTRACT(DAY FROM (a.scheduled_departure))
+ORDER BY a.flight_no,
+         EXTRACT(MONTH FROM (a.scheduled_departure)) ASC, 
+         EXTRACT(DAY FROM (a.scheduled_departure)) ASC;
+
+/* Посмотрим заполняемость рейсов по дням недели
+здесь нужно дополнительно довычислить среднее по дню недели, 
+количество в бывает разное в месяце 4 или 5 */
+
+SELECT a.flight_no,
+       EXTRACT(MONTH
+               FROM (a.scheduled_departure))::int AS nmonth,
+       EXTRACT(DAY
+FROM
+SELECT a.flight_no,
+       EXTRACT(MONTH FROM (a.scheduled_departure))::int AS nmonth,
+       EXTRACT(DOW FROM (a.scheduled_departure))::int AS nday,
+       count(b.ticket_no) AS avg_ticket,
+       sum(b.amount) AS avg_amount
+FROM dst_project.TICKET_FLIGHTS AS b,
+     dst_project.FLIGHTS AS a
+WHERE a.flight_id=b.flight_id
+  AND a.departure_airport = 'AAQ'
+  AND (a.scheduled_departure>='2016-10-25'
+       AND a.scheduled_departure<'2017-03-27')
+GROUP BY a.flight_no,
+         EXTRACT(MONTH FROM (a.scheduled_departure)),
+         EXTRACT(DOW FROM (a.scheduled_departure))
+ORDER BY a.flight_no, 
+         EXTRACT(MONTH FROM (a.scheduled_departure)) ASC, 
+         EXTRACT(DOW FROM (a.scheduled_departure)) ASC;
+
+/*----------------------------------------------------------------------
+Структура датасета
+
+1. flight_id — идентификатор рейса
+2. flight_no — номер рейса
+3. city_departure — город вылета Анапа
+4. city_arrival — город прибытия
+5. timezone — часовой пояс аэропорта прибытия
+6. latitude— долгота аэропорта прибытия
+7.  longitude — широта аэропорта прибытия
+8. model — модель самолета
+9. range — максимальная дальность полета самолета в км
+10. scheduled_departure — время вылета по расписанию
+11. scheduled_arrival — время прибытия по расписанию
+12. actual_departure — фактическое время вылета
+13. actual_arrival — фактическое время прибытия
+14. departure_airport — аэропорт вылета
+15. arrival_airport — аэропорт прибытия
+16. aircraft_code — код самолета
+17. way_minutes — время полета в рейсе
+18. count_seats — количество мест в самолете
+19. count_ticket — количество проданных билетов всего на рейс
+20. occupancy - процент заполненности рейса 
+21. sum_amout — сумма проданных билетов на рейс
+22. count_economy — количество проданных билетов эконом класса
+23. sum_econom — сумма проданных билетов эконом класса
+24. count_business — количество проданных билетов бизнес класса
+25. sum_business — сумма проданных билетов бизнес класса
+----------------------------------------------------------------*/
+
+
+SELECT fl.flight_id, --  id рейса
+  fl.flight_no, -- номер рейса
+  a1.city AS city_departure,                    -- город вылета Анапа
+  a2.city AS city_arrival,                      -- город прибытия
+  a2.timezone AS timezone,                      -- часовой пояс аэропорта прибытия
+  a2.longitude AS latitude,                     -- долгота аэропорта прибытия
+  a2.latitude AS latitude,                      -- широта аэропорта прибытия
+  airc.model,                                   -- модель самолета
+  airc.range,                                   -- максимальная дальность полёта в километрах
+  fl.scheduled_departure,                       -- время вылета по расписанию
+  fl.actual_departure,                          -- время прибытия по расписанию
+  fl.scheduled_arrival,                         -- фактическое время вылета
+  fl.actual_arrival,                            -- фактическое время прибытия
+  fl.departure_airport,                         -- аэропорт отправления
+  fl.arrival_airport,                           -- аэропорт прибытия
+  fl.aircraft_code,                             -- код самолета
+  EXTRACT(HOUR FROM (fl.scheduled_arrival - fl.scheduled_departure)) * 60 + EXTRACT(MINUTE
+        FROM (fl.scheduled_arrival - fl.scheduled_departure)) AS way_minutes, -- время
+  se.count_seats,                               -- количество мест в самолете
+  ts.count_ticket,                              -- количество билетов, проданных по рейсу
+  (ts.count_ticket * 100)/se.count_seats::int AS occupancy, -- процент заполненности самолета на рейсе
+  ts.sum_amout,                                 -- стоимость проданных билетов
+  te.count_Economy,                             -- кол-во прод билетов Эконом класса
+  te.sum_Econom,                                -- стоимость прод билетов Эконом класса
+  tb.count_Business,                            -- количество прод билетов Бизнес класса
+  tb.sum_Business                               -- стоимость прод билетов Бизнес класса
+FROM dst_project.flights AS fl
+JOIN dst_project.airports AS a1 ON fl.departure_airport = a1.airport_code
+JOIN dst_project.airports AS a2 ON fl.arrival_airport = a2.airport_code
+JOIN dst_project.aircrafts AS airc ON fl.aircraft_code = airc.aircraft_code
+JOIN
+  (SELECT fl.flight_id, count(se.seat_no) AS count_seats     -- количество мест в самолете всего
+   FROM dst_project.flights AS fl
+   JOIN dst_project.seats AS se ON fl.aircraft_code = se.aircraft_code
+   WHERE fl.departure_airport = 'AAQ'
+     AND (fl.scheduled_departure>='2016-10-25'
+          AND fl.scheduled_departure<'2017-03-27')
+     AND fl.status not in ('Cancelled')
+   GROUP BY 1) AS se ON fl.flight_id = se.flight_id
+LEFT JOIN
+  (SELECT fl.flight_id,
+          count(DISTINCT tt.ticket_no) AS count_ticket,
+          sum(tt.amount) AS sum_amout                        -- стоимость проданных билетов
+   FROM dst_project.flights AS fl
+   LEFT JOIN dst_project.ticket_flights AS tt ON fl.flight_id = tt.flight_id
+   WHERE fl.departure_airport = 'AAQ'
+     AND (fl.scheduled_departure>='2016-10-25'
+          AND fl.scheduled_departure<'2017-03-27')
+     AND fl.status not in ('Cancelled')
+   GROUP BY 1) AS ts ON fl.flight_id = ts.flight_id
+LEFT JOIN
+  (SELECT fl.flight_id,
+          count(DISTINCT te.ticket_no) AS count_Economy,
+          sum(te.amount) AS sum_Econom
+   FROM dst_project.flights AS fl
+   LEFT JOIN dst_project.ticket_flights AS te ON fl.flight_id = te.flight_id
+   WHERE fl.departure_airport = 'AAQ'
+     AND te.fare_conditions = 'Economy'
+     AND (fl.scheduled_departure>='2016-10-25'
+          AND fl.scheduled_departure<'2017-03-27')
+     AND fl.status not in ('Cancelled')
+   GROUP BY 1) AS te ON fl.flight_id = te.flight_id
+LEFT JOIN
+  (SELECT fl.flight_id,
+          count(DISTINCT tb.ticket_no) AS count_Business,
+          sum(tb.amount) AS sum_Business
+   FROM dst_project.flights AS fl
+   LEFT JOIN dst_project.ticket_flights AS tb ON fl.flight_id = tb.flight_id
+   WHERE fl.departure_airport = 'AAQ'
+     AND tb.fare_conditions = 'Business'
+     AND (fl.scheduled_departure>='2016-10-25'
+          AND fl.scheduled_departure<'2017-03-27')
+     AND fl.status not in ('Cancelled')
+   GROUP BY 1) tb ON fl.flight_id = tb.flight_id
+WHERE fl.departure_airport = 'AAQ'
+  AND (fl.scheduled_departure>='2016-10-25'
+       AND fl.scheduled_departure<'2017-03-27')
+  AND fl.status not in ('Cancelled');
+

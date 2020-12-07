@@ -516,4 +516,3 @@ WHERE fl.departure_airport = 'AAQ'
   AND (fl.scheduled_departure>='2016-10-25'
        AND fl.scheduled_departure<'2017-03-27')
   AND fl.status not in ('Cancelled');
-

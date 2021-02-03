@@ -16,8 +16,11 @@
 **Юнит 3:** Предсказать рейтинг ресторана по данным сайта TripAdvisor на основе имеющихся в датасете данных.  
 :arrow_left:[к Юнит 3](https://github.com/HeronFL/Skill-Factory-Projects/tree/master/module_3)
 
-**Юнит 5:** Отобрать необходимую информацию для анализа о невыгодных перелетах из Анапы в зимнее время на основе демонстрационной базы данных авиаперевозок по России.
-:arrow_left:[к Юнит 5](https://github.com/HeronFL/Skill-Factory-Projects/tree/master/module_4)
+**Юнит 4:** Отобрать необходимую информацию для анализа о невыгодных перелетах из Анапы в зимнее время на основе демонстрационной базы данных авиаперевозок по России.
+:arrow_left:[к Юнит 4](https://github.com/HeronFL/Skill-Factory-Projects/tree/master/module_4)
+
+**Юнит 5:** Написать скоринговую модель предсказания дефолта вторичных клиентов банка.  
+:arrow_left:[к Юнит 5](https://github.com/HeronFL/Skill-Factory-Projects/tree/master/module_5)
 
 
 
